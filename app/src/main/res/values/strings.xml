@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LUX Meter</string>
+    <string name="lux_title">Ambient Light Level (LUX)</string>
+    <string name="sensor_not_available">Sensor not available</string>
+</resources>
