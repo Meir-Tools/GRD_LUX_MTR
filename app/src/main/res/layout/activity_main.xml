@@ -82,15 +82,28 @@
 
         </FrameLayout>
 
+        <TextView
+            android:id="@+id/gpsInfo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="GPS: Searching..."
+            android:textColor="#333333"
+            android:textSize="14sp"
+            app:layout_constraintBottom_toTopOf="@+id/mapContainer"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/compassContainer" />
+
         <FrameLayout
             android:id="@+id/mapContainer"
             android:layout_width="match_parent"
             android:layout_height="300dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="8dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/compassContainer">
+            app:layout_constraintTop_toBottomOf="@+id/gpsInfo">
 
             <WebView
                 android:id="@+id/mapWebView"

@@ -17,7 +17,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import java.util.Locale
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
@@ -30,10 +34,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var bubble: View
     private lateinit var levelContainer: View
     private lateinit var compassDisk: ImageView
-
     private lateinit var mapArrow: ImageView
+    private lateinit var gpsInfo: TextView
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var mapWebView: WebView
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+
     private val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
     private var gravity: FloatArray? = null
@@ -48,6 +55,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         levelContainer = findViewById(R.id.levelContainer)
         compassDisk = findViewById(R.id.compassDisk)
         mapArrow = findViewById(R.id.mapArrow)
+        gpsInfo = findViewById(R.id.gpsInfo)
         
         mapWebView = findViewById(R.id.mapWebView)
         mapWebView.settings.javaScriptEnabled = true
@@ -64,6 +72,25 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
+        // Initialize Location Request
+        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+            .setWaitForAccurateLocation(false)
+            .setMinUpdateIntervalMillis(2000)
+            .setMaxUpdateDelayMillis(10000)
+            .build()
+
+        // Initialize Location Callback
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations) {
+                    val lat = location.latitude
+                    val lng = location.longitude
+                    gpsInfo.text = String.format(Locale.getDefault(), "GPS: %.4f, %.4f", lat, lng)
+                    mapWebView.evaluateJavascript("updateLocation($lat, $lng)", null)
+                }
+            }
+        }
+        
         getDeviceLocation()
     }
 
@@ -78,11 +105,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         magnetoSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
+        startLocationUpdates()
     }
 
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
+        stopLocationUpdates()
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -150,6 +179,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     if (task.isSuccessful) {
                         val lastKnownLocation = task.result
                         if (lastKnownLocation != null) {
+                            // Initial centering
                             mapWebView.evaluateJavascript("updateLocation(${lastKnownLocation.latitude}, ${lastKnownLocation.longitude})", null)
                         } else {
                             if (!isLocationEnabled()) {
@@ -164,6 +194,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         } catch (e: SecurityException) {
             e.printStackTrace()
         }
+    }
+
+    private fun startLocationUpdates() {
+        if (hasLocationPermission()) {
+            try {
+                fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
+            } catch (e: SecurityException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 
     private fun hasLocationPermission(): Boolean {
@@ -182,6 +226,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getDeviceLocation()
+                startLocationUpdates()
             } else {
                 Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
             }
