@@ -26,9 +26,54 @@
         android:text="0.0"
         android:textSize="48sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/levelContainer"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/luxTitle" />
+
+    <FrameLayout
+        android:id="@+id/levelContainer"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/level_background"
+        app:layout_constraintBottom_toTopOf="@+id/compassContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/luxValue">
+
+        <View
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="center"
+            android:background="@drawable/center_target" />
+
+        <View
+            android:id="@+id/bubble"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bubble_shape" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/compassContainer"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/levelContainer">
+
+        <ImageView
+            android:id="@+id/compassDisk"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/compass_desc"
+            android:src="@drawable/compass_disk" />
+
+    </FrameLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
