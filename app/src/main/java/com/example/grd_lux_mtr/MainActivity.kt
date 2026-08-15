@@ -8,6 +8,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -17,14 +18,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
+import org.osmdroid.config.Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
 import java.util.Locale
 
-class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
@@ -37,7 +36,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
 
     private lateinit var mapArrow: ImageView
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private var googleMap: GoogleMap? = null
+    private lateinit var map: MapView
     private val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
     private var gravity: FloatArray? = null
@@ -45,6 +44,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize osmdroid configuration
+        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
+        
         setContentView(R.layout.activity_main)
 
         luxValueTextView = findViewById(R.id.luxValue)
@@ -52,6 +55,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
         levelContainer = findViewById(R.id.levelContainer)
         compassDisk = findViewById(R.id.compassDisk)
         mapArrow = findViewById(R.id.mapArrow)
+        map = findViewById(R.id.map)
+
+        // Initialize Map
+        map.controller.setZoom(18.0)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -63,12 +70,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
         }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
+        
+        getDeviceLocation()
     }
 
     override fun onResume() {
         super.onResume()
+        map.onResume()
         lightSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
@@ -82,6 +90,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
 
     override fun onPause() {
         super.onPause()
+        map.onPause()
         sensorManager.unregisterListener(this)
     }
 
@@ -132,6 +141,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
                 SensorManager.getOrientation(r, orientation)
                 val azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat()
                 compassDisk.rotation = -azimuth
+                // Rotate mapArrow to point in the device's heading (azimuth)
                 mapArrow.rotation = azimuth
             }
         }
@@ -139,28 +149,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed for this app
-    }
-
-    override fun onMapReady(map: GoogleMap) {
-        googleMap = map
-        updateLocationUI()
-        getDeviceLocation()
-    }
-
-    private fun updateLocationUI() {
-        if (googleMap == null) return
-        try {
-            if (hasLocationPermission()) {
-                googleMap?.isMyLocationEnabled = true
-                googleMap?.uiSettings?.isMyLocationButtonEnabled = true
-            } else {
-                googleMap?.isMyLocationEnabled = false
-                googleMap?.uiSettings?.isMyLocationButtonEnabled = false
-                requestLocationPermission()
-            }
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
     }
 
     private fun getDeviceLocation() {
@@ -171,8 +159,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
                     if (task.isSuccessful) {
                         val lastKnownLocation = task.result
                         if (lastKnownLocation != null) {
-                            googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                LatLng(lastKnownLocation.latitude, lastKnownLocation.longitude), 15f))
+                            val geoPoint = GeoPoint(lastKnownLocation.latitude, lastKnownLocation.longitude)
+                            map.controller.setCenter(geoPoint)
                         } else {
                             if (!isLocationEnabled()) {
                                 Toast.makeText(this, "Please enable GPS/Location services", Toast.LENGTH_SHORT).show()
@@ -180,6 +168,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
                         }
                     }
                 }
+            } else {
+                requestLocationPermission()
             }
         } catch (e: SecurityException) {
             e.printStackTrace()
@@ -201,7 +191,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallbac
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                updateLocationUI()
                 getDeviceLocation()
             } else {
                 Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
