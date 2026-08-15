@@ -45,11 +45,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize osmdroid configuration
+        // 1. Set a very specific User-Agent before anything else
+        val osmConfig = Configuration.getInstance()
+        osmConfig.userAgentValue = "GrdLuxMtrApp/1.1 (Android; Meir-Tools-Project)"
+        
+        // 2. Load configuration
         val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
-        Configuration.getInstance().load(this, sharedPrefs)
-        // Set a unique User-Agent to avoid 403 errors
-        Configuration.getInstance().userAgentValue = packageName
+        osmConfig.load(this, sharedPrefs)
+        
+        // 3. Set cache location to internal to avoid permission issues
+        osmConfig.osmdroidTileCache = java.io.File(cacheDir, "osm_tiles")
         
         setContentView(R.layout.activity_main)
 
@@ -60,8 +65,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         mapArrow = findViewById(R.id.mapArrow)
         map = findViewById(R.id.map)
 
-        // Initialize Map
-        map.controller.setZoom(18.0)
+        // 4. Initialize Map with a different, more reliable tile source
+        map.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.WIKIMEDIA)
+        map.setMultiTouchControls(true)
+        map.controller.setZoom(17.0)
+        
+        // 5. Force clear cache for this run to remove "403" tiles
+        Thread {
+            map.tileProvider.tileCache.clear()
+        }.start()
+        
+        // Clear cache to remove blocked tiles
+        map.tileProvider.tileCache.clear()
+        map.invalidate()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
