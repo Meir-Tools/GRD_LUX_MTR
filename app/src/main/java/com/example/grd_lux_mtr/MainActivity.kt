@@ -1,6 +1,8 @@
 package com.example.grd_lux_mtr
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -9,11 +11,20 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 import java.util.Locale
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class MainActivity : AppCompatActivity(), SensorEventListener, OnMapReadyCallback {
 
     private lateinit var sensorManager: SensorManager
     private var lightSensor: Sensor? = null
@@ -23,6 +34,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var bubble: View
     private lateinit var levelContainer: View
     private lateinit var compassDisk: ImageView
+
+    private lateinit var mapArrow: ImageView
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var googleMap: GoogleMap? = null
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
     private var gravity: FloatArray? = null
     private var geomagnetic: FloatArray? = null
@@ -35,6 +51,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         bubble = findViewById(R.id.bubble)
         levelContainer = findViewById(R.id.levelContainer)
         compassDisk = findViewById(R.id.compassDisk)
+        mapArrow = findViewById(R.id.mapArrow)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -44,6 +61,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         if (lightSensor == null) {
             luxValueTextView.text = getString(R.string.sensor_not_available)
         }
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this)
     }
 
     override fun onResume() {
@@ -67,16 +88,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         if (event == null) return
 
-        if (event.sensor.type == Sensor.TYPE_LIGHT) {
-            val luxValue = event.values[0]
-            luxValueTextView.text = String.format(Locale.getDefault(), "%.2f lx", luxValue)
-        } else if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-            gravity = event.values.clone()
-            updateBubble(event.values[0], event.values[1])
-            updateCompass()
-        } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-            geomagnetic = event.values.clone()
-            updateCompass()
+        when (event.sensor.type) {
+            Sensor.TYPE_LIGHT -> {
+                val luxValue = event.values[0]
+                luxValueTextView.text = String.format(Locale.getDefault(), "%.2f lx", luxValue)
+            }
+            Sensor.TYPE_ACCELEROMETER -> {
+                gravity = event.values.clone()
+                updateBubble(event.values[0], event.values[1])
+                updateCompass()
+            }
+            Sensor.TYPE_MAGNETIC_FIELD -> {
+                geomagnetic = event.values.clone()
+                updateCompass()
+            }
         }
     }
 
@@ -107,11 +132,86 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 SensorManager.getOrientation(r, orientation)
                 val azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat()
                 compassDisk.rotation = -azimuth
+                mapArrow.rotation = azimuth
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Not needed for this app
+    }
+
+    override fun onMapReady(map: GoogleMap) {
+        googleMap = map
+        updateLocationUI()
+        getDeviceLocation()
+    }
+
+    private fun updateLocationUI() {
+        if (googleMap == null) return
+        try {
+            if (hasLocationPermission()) {
+                googleMap?.isMyLocationEnabled = true
+                googleMap?.uiSettings?.isMyLocationButtonEnabled = true
+            } else {
+                googleMap?.isMyLocationEnabled = false
+                googleMap?.uiSettings?.isMyLocationButtonEnabled = false
+                requestLocationPermission()
+            }
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun getDeviceLocation() {
+        try {
+            if (hasLocationPermission()) {
+                val locationResult = fusedLocationClient.lastLocation
+                locationResult.addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        val lastKnownLocation = task.result
+                        if (lastKnownLocation != null) {
+                            googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(
+                                LatLng(lastKnownLocation.latitude, lastKnownLocation.longitude), 15f))
+                        } else {
+                            if (!isLocationEnabled()) {
+                                Toast.makeText(this, "Please enable GPS/Location services", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(this, 
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 
+            LOCATION_PERMISSION_REQUEST_CODE)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                updateLocationUI()
+                getDeviceLocation()
+            } else {
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as android.location.LocationManager
+        return locationManager.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
     }
 }

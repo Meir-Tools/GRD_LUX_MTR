@@ -1,79 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
+    android:fillViewport="true"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/luxTitle"
-        android:layout_width="wrap_content"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/lux_title"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toTopOf="@+id/luxValue"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/luxValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="0.0"
-        android:textSize="48sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/levelContainer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/luxTitle" />
+        <TextView
+            android:id="@+id/luxTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/lux_title"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toTopOf="@+id/luxValue"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed" />
 
-    <FrameLayout
-        android:id="@+id/levelContainer"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_marginTop="16dp"
-        android:background="@drawable/level_background"
-        app:layout_constraintBottom_toTopOf="@+id/compassContainer"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/luxValue">
+        <TextView
+            android:id="@+id/luxValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.0"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@+id/levelContainer"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/luxTitle" />
 
-        <View
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_gravity="center"
-            android:background="@drawable/center_target" />
+        <FrameLayout
+            android:id="@+id/levelContainer"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/level_background"
+            app:layout_constraintBottom_toTopOf="@+id/compassContainer"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/luxValue">
 
-        <View
-            android:id="@+id/bubble"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_gravity="center"
-            android:background="@drawable/bubble_shape" />
+            <View
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="center"
+                android:background="@drawable/center_target" />
 
-    </FrameLayout>
+            <View
+                android:id="@+id/bubble"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bubble_shape" />
 
-    <FrameLayout
-        android:id="@+id/compassContainer"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/levelContainer">
+        </FrameLayout>
 
-        <ImageView
-            android:id="@+id/compassDisk"
+        <FrameLayout
+            android:id="@+id/compassContainer"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintBottom_toTopOf="@+id/mapContainer"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/levelContainer">
+
+            <ImageView
+                android:id="@+id/compassDisk"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/compass_desc"
+                android:src="@drawable/compass_disk" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/mapContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/compass_desc"
-            android:src="@drawable/compass_disk" />
+            android:layout_height="300dp"
+            android:layout_marginTop="32dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/compassContainer">
 
-    </FrameLayout>
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/map"
+                android:name="com.google.android.gms.maps.SupportMapFragment"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <ImageView
+                android:id="@+id/mapArrow"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/map_arrow_desc"
+                android:src="@drawable/compass_arrow" />
+
+        </FrameLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

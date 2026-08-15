@@ -36,6 +36,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.material)
+    implementation(libs.playMaps)
+    implementation(libs.playLocation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

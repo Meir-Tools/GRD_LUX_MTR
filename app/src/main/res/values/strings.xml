@@ -3,4 +3,5 @@
     <string name="lux_title">Ambient Light Level (LUX)</string>
     <string name="sensor_not_available">Sensor not available</string>
     <string name="compass_desc">Compass disk</string>
+    <string name="map_arrow_desc">Map heading arrow</string>
 </resources>
