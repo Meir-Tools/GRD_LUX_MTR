@@ -45,17 +45,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Set a VERY specific and compliant User-Agent for OSM
-        val osmConfig = Configuration.getInstance()
-        osmConfig.userAgentValue = "LuxMeterCompassApp/1.2 (https://github.com/Meir-Tools/GRD_LUX_MTR; meir.tools.app@gmail.com)"
+        // 1. Set a simple unique User-Agent
+        Configuration.getInstance().userAgentValue = "MeirLuxMeterAppV4"
         
         // 2. Load configuration
         val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
-        osmConfig.load(this, sharedPrefs)
+        Configuration.getInstance().load(this, sharedPrefs)
         
-        // 3. Use a fresh internal cache directory
-        val freshCacheDir = java.io.File(cacheDir, "osm_tiles_v3")
-        osmConfig.osmdroidTileCache = freshCacheDir
+        // 3. Fresh cache location
+        Configuration.getInstance().osmdroidTileCache = java.io.File(cacheDir, "osm_tiles_v4")
         
         setContentView(R.layout.activity_main)
 
@@ -66,19 +64,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         mapArrow = findViewById(R.id.mapArrow)
         map = findViewById(R.id.map)
 
-        // 4. Use the standard MAPNIK source (OpenStreetMap)
-        map.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+        // 4. Use CartoDB Positron tiles - Cleaner and more reliable
+        val cartoDbSource = org.osmdroid.tileprovider.tilesource.XYTileSource(
+            "CartoDB_Positron",
+            0, 20, 256, ".png",
+            arrayOf(
+                "https://a.basemaps.cartocdn.com/light_all/",
+                "https://b.basemaps.cartocdn.com/light_all/",
+                "https://c.basemaps.cartocdn.com/light_all/",
+                "https://d.basemaps.cartocdn.com/light_all/"
+            )
+        )
+        
+        map.setTileSource(cartoDbSource)
         map.setMultiTouchControls(true)
         map.controller.setZoom(17.0)
         
-        // 5. Explicitly clear any bad cached tiles
+        // 5. Force clear cache
         Thread {
             map.tileProvider.tileCache.clear()
         }.start()
-        
-        // Clear cache to remove blocked tiles
-        map.tileProvider.tileCache.clear()
-        map.invalidate()
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
