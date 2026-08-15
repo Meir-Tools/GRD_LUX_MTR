@@ -8,8 +8,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.view.View
+import android.webkit.WebView
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -18,9 +18,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import org.osmdroid.config.Configuration
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import java.util.Locale
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
@@ -36,7 +33,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var mapArrow: ImageView
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var map: MapView
+    private lateinit var mapWebView: WebView
     private val LOCATION_PERMISSION_REQUEST_CODE = 1001
 
     private var gravity: FloatArray? = null
@@ -44,17 +41,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 1. Set a simple unique User-Agent
-        Configuration.getInstance().userAgentValue = "MeirLuxMeterAppV4"
-        
-        // 2. Load configuration
-        val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
-        Configuration.getInstance().load(this, sharedPrefs)
-        
-        // 3. Fresh cache location
-        Configuration.getInstance().osmdroidTileCache = java.io.File(cacheDir, "osm_tiles_v4")
-        
         setContentView(R.layout.activity_main)
 
         luxValueTextView = findViewById(R.id.luxValue)
@@ -62,28 +48,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         levelContainer = findViewById(R.id.levelContainer)
         compassDisk = findViewById(R.id.compassDisk)
         mapArrow = findViewById(R.id.mapArrow)
-        map = findViewById(R.id.map)
-
-        // 4. Use CartoDB Positron tiles - Cleaner and more reliable
-        val cartoDbSource = org.osmdroid.tileprovider.tilesource.XYTileSource(
-            "CartoDB_Positron",
-            0, 20, 256, ".png",
-            arrayOf(
-                "https://a.basemaps.cartocdn.com/light_all/",
-                "https://b.basemaps.cartocdn.com/light_all/",
-                "https://c.basemaps.cartocdn.com/light_all/",
-                "https://d.basemaps.cartocdn.com/light_all/"
-            )
-        )
         
-        map.setTileSource(cartoDbSource)
-        map.setMultiTouchControls(true)
-        map.controller.setZoom(17.0)
-        
-        // 5. Force clear cache
-        Thread {
-            map.tileProvider.tileCache.clear()
-        }.start()
+        mapWebView = findViewById(R.id.mapWebView)
+        mapWebView.settings.javaScriptEnabled = true
+        mapWebView.loadUrl("file:///android_asset/map.html")
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
@@ -101,7 +69,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onResume() {
         super.onResume()
-        map.onResume()
         lightSensor?.let {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
@@ -115,7 +82,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onPause() {
         super.onPause()
-        map.onPause()
         sensorManager.unregisterListener(this)
     }
 
@@ -184,8 +150,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     if (task.isSuccessful) {
                         val lastKnownLocation = task.result
                         if (lastKnownLocation != null) {
-                            val geoPoint = GeoPoint(lastKnownLocation.latitude, lastKnownLocation.longitude)
-                            map.controller.setCenter(geoPoint)
+                            mapWebView.evaluateJavascript("updateLocation(${lastKnownLocation.latitude}, ${lastKnownLocation.longitude})", null)
                         } else {
                             if (!isLocationEnabled()) {
                                 Toast.makeText(this, "Please enable GPS/Location services", Toast.LENGTH_SHORT).show()
