@@ -45,16 +45,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Set a very specific User-Agent before anything else
+        // 1. Set a VERY specific and compliant User-Agent for OSM
         val osmConfig = Configuration.getInstance()
-        osmConfig.userAgentValue = "GrdLuxMtrApp/1.1 (Android; Meir-Tools-Project)"
+        osmConfig.userAgentValue = "LuxMeterCompassApp/1.2 (https://github.com/Meir-Tools/GRD_LUX_MTR; meir.tools.app@gmail.com)"
         
         // 2. Load configuration
         val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
         osmConfig.load(this, sharedPrefs)
         
-        // 3. Set cache location to internal to avoid permission issues
-        osmConfig.osmdroidTileCache = java.io.File(cacheDir, "osm_tiles")
+        // 3. Use a fresh internal cache directory
+        val freshCacheDir = java.io.File(cacheDir, "osm_tiles_v3")
+        osmConfig.osmdroidTileCache = freshCacheDir
         
         setContentView(R.layout.activity_main)
 
@@ -65,12 +66,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         mapArrow = findViewById(R.id.mapArrow)
         map = findViewById(R.id.map)
 
-        // 4. Initialize Map with a different, more reliable tile source
-        map.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.WIKIMEDIA)
+        // 4. Use the standard MAPNIK source (OpenStreetMap)
+        map.setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
         map.setMultiTouchControls(true)
         map.controller.setZoom(17.0)
         
-        // 5. Force clear cache for this run to remove "403" tiles
+        // 5. Explicitly clear any bad cached tiles
         Thread {
             map.tileProvider.tileCache.clear()
         }.start()
