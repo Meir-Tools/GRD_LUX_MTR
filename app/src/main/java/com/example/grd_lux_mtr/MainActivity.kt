@@ -46,7 +46,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         
         // Initialize osmdroid configuration
-        Configuration.getInstance().load(this, PreferenceManager.getDefaultSharedPreferences(this))
+        val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
+        Configuration.getInstance().load(this, sharedPrefs)
+        // Set a unique User-Agent to avoid 403 errors
+        Configuration.getInstance().userAgentValue = packageName
         
         setContentView(R.layout.activity_main)
 
